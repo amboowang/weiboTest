@@ -1,5 +1,6 @@
 package com.codepath.example.customadapterdemo;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 import android.app.Activity;
@@ -39,8 +40,8 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     private SsoHandler sso;
     private Oauth2AccessToken m_accessToken;
     private ArrayList<User> users = new ArrayList<User>();
-    public static httpTask task;
-    private Handler handler;
+    private httpTask task;
+    private InnerHandler handler;
     // weibo authlister
     @Override
     public void onCancel() {
@@ -59,8 +60,18 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             Log.d("ListExample", "Auth success, token"+m_accessToken);
 
             //get the public line
-
             //CustomListActivity.task.execute();
+            //Message msg = handler.obtainMessage();
+            //msg.what = 1;
+            //msg.sendToTarget();
+
+            //new httpTask().execute();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    new httpTask().execute();
+                }
+            });
         }
         else{
             Log.d("ListExample", "Auth failure");
@@ -71,7 +82,28 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     public void onWeiboException(WeiboException arg0) {
         Log.d("ListExample", "Auth Exception"+arg0.getMessage());
     }
+    // inner handler
+    static class InnerHandler extends Handler {
+        WeakReference<CustomListActivity> mListActivity;
 
+        InnerHandler(CustomListActivity aListActivity) {
+            mListActivity = new WeakReference<CustomListActivity>(aListActivity);
+        }
+        @Override
+        public void handleMessage(Message inputMsg) {
+            CustomListActivity theActivity = mListActivity.get();
+            switch (inputMsg.what){
+                case 1:
+                    Log.d("ListExample", "Notify  List activity the auth success");
+                    //task.execute();
+                    if (theActivity.task != null) {
+                        Log.d("ListExample", "execute the asyn http task");
+                    }
+
+                    break;
+            }
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("ListExample", "onCreate");
@@ -79,19 +111,11 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         setContentView(R.layout.activity_custom_list);
 
         //set up the handler
-        handler = new Handler(Looper.getMainLooper()){
-            @Override
-            public void handleMessage(Message inputMsg) {
-                switch (inputMsg.what){
-                    //
-                }
-            }
-        };
-
+        handler = new InnerHandler(this);
 
         //populateUsersList();
         //create the asnyc task
-        task = new httpTask();
+        //task = new httpTask();
 
         // Weibo auth
         Log.d("ListExample", "Begin Weibo auth");
@@ -107,19 +131,12 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     {
         Log.d("ListExample", "onResume");
         super.onResume();
-        //weibo auth
-        //WeiboAuthListener
-        //SsoHandler sso = new SsoHandler();
-        //sso.authorize();
-        //new httpTask().execute();
-        task = new httpTask();
-        task.execute();
     }
     @Override
     protected void onPause() {
         Log.d("ListExample", "onPause");
         super.onPause();
-        task.cancel(true);
+        //task.cancel(true);
     }
 
     @Override
