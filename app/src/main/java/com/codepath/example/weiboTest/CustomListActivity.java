@@ -14,6 +14,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.widget.ListView;
 
@@ -45,7 +46,8 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     private httpTask task;
     private InnerHandler handler;
     private DBHelper dbHelper;
-
+    private SwipeRefreshLayout mRefreshlayout;
+    private boolean mAuthSuccessed;
     // weibo authlister
     @Override
     public void onCancel() {
@@ -68,14 +70,14 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             //Message msg = handler.obtainMessage();
             //msg.what = 1;
             //msg.sendToTarget();
-
+            mAuthSuccessed = true;
             //new httpTask().execute();
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    //new httpTask().execute();
-                }
-            });
+            //handler.post(new Runnable() {
+            //    @Override
+            //    public void run() {
+            //        //new httpTask().execute();
+            //    }
+            //});
         }
         else{
             Log.d(TAG, "Auth failure");
@@ -114,12 +116,27 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_custom_list);
 
+        mAuthSuccessed = false;
+
         //set up the handler
         handler = new InnerHandler(this);
         dbHelper = new DBHelper(this);
         //populateUsersList();
         //create the asnyc task
         //task = new httpTask();
+        mRefreshlayout = (SwipeRefreshLayout)findViewById(R.id.refresh_layout);
+        mRefreshlayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Log.d(TAG, "Begin refresh");
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        new httpTask().execute();
+                    }
+                });
+            }
+        });
 
         // Weibo auth
         Log.d(TAG, "Begin Weibo auth");
@@ -174,10 +191,11 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     }
 
     public class httpTask extends AsyncTask<Void, Void, Void> {
-        private ProgressDialog progressDialog;
+        //private ProgressDialog progressDialog;
 
         @Override
         protected void onPreExecute() {
+            /*
             progressDialog = ProgressDialog.show(CustomListActivity.this, "", "Loading", true);
             progressDialog.setCancelable(true);
 
@@ -188,6 +206,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                     //clean code
                 }
             });
+            */
         }
 
         @Override
@@ -229,7 +248,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                             }
                         }
 
-                        users.add(user);
+                        //users.add(user);
 
                         //save to the SQLite
                         dbHelper.add(user);
@@ -247,7 +266,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
 
         @Override
         protected void onPostExecute(Void result) {
-            progressDialog.dismiss();
+            //progressDialog.dismiss();
             Log.d(TAG, "Http task post execute");
             /*
             if (users.isEmpty()) {
@@ -255,6 +274,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             }
             */
             //populateUsersList();
+            mRefreshlayout.setRefreshing(false);
 
         }
 

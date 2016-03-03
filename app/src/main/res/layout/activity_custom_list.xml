@@ -5,15 +5,22 @@
     android:layout_height="match_parent"
     tools:context="${packageName}.${activityClass}" >
 
-    <ListView
-        android:id="@+id/lvUsers"
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id = "@+id/refresh_layout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true" >
+        android:layout_height="wrap_content">
 
-    </ListView>
+        <ListView
+            android:id="@+id/lvUsers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true" >
+
+        </ListView>
+    </android.support.v4.widget.SwipeRefreshLayout>
+
 
 </RelativeLayout>
