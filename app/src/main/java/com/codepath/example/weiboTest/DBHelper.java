@@ -5,8 +5,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap;
 import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 
 /**
@@ -21,6 +24,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String COLUMN_ID = "_id";
     public static final String COLUMN_NAME = "_NAME";
     public static final String COLUMN_TEXT = "_TEXT";
+    public static final String COLUMN_BMIDDLE_PIC = "_BMIDDLE_IMAGE";
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -31,7 +35,8 @@ public class DBHelper extends SQLiteOpenHelper {
         String CREATE_TABLE = "CREATE TABLE " + TABLE_WEIBO + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY,"
                 + COLUMN_NAME + " TEXT,"
-                + COLUMN_TEXT + " TEXT" + ")";
+                + COLUMN_TEXT + " TEXT,"
+                + COLUMN_BMIDDLE_PIC + " BLOB"+")";
 
         //You could define id as an auto increment column:
         //create table entries (id integer primary key autoincrement, data)
@@ -44,18 +49,22 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+        Log.d(TAG, "DBHelper: onUpgrade");
         String UPDATE_TABLE = "FROP TABLE IF EXIST " + TABLE_WEIBO;
         onCreate(sqLiteDatabase);
     }
 
     public void add(User item) {
+        Log.d(TAG, "DBHelper: add");
         ContentValues values = new ContentValues();
 
         values.put(COLUMN_NAME, item.name);
         values.put(COLUMN_TEXT, item.hometown);
-
+        if (item.bitmap != null) {
+            Log.d(TAG, "DBHelper: add the image");
+            values.put(COLUMN_BMIDDLE_PIC, getBytes(item.bitmap));
+        }
         SQLiteDatabase db = this.getWritableDatabase();
-        Log.d(TAG, "DBHelper: add");
         db.insert(TABLE_WEIBO, null, values);
         db.close();
     }
@@ -75,9 +84,28 @@ public class DBHelper extends SQLiteOpenHelper {
 
                     user.name = cursor.getString(cursor.getColumnIndex(COLUMN_NAME));
                     user.hometown = cursor.getString(cursor.getColumnIndex(COLUMN_TEXT));
+
+                    if (!cursor.isNull(cursor.getColumnIndex(COLUMN_BMIDDLE_PIC))) {
+                        Log.d(TAG, "DBHelper: load the image");
+                        user.bitmap = getImage(cursor.getBlob(cursor.getColumnIndex(COLUMN_BMIDDLE_PIC)));
+                    }
+
                     arrayList.add(user);
+
                 }while(cursor.moveToNext());
             }
         }
+    }
+
+    // convert from bitmap to byte array
+    public static byte[] getBytes(Bitmap bitmap) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 0, stream);
+        return stream.toByteArray();
+    }
+
+    // convert from byte array to bitmap
+    public static Bitmap getImage(byte[] image) {
+        return BitmapFactory.decodeByteArray(image, 0, image.length);
     }
 }

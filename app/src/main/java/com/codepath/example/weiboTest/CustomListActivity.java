@@ -254,7 +254,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                 users = User.getUsers();
             }
             */
-            populateUsersList();
+            //populateUsersList();
 
         }
 

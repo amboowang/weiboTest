@@ -9,7 +9,9 @@ public class User {
 	public String hometown;
 	public Bitmap bitmap;
 
-	public  User(){}
+	public  User(){
+		this.bitmap = null;
+	}
 
 	public User(String name, String hometown) {
 		this.name = name;
