@@ -56,6 +56,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     public void add(User item) {
         Log.d(TAG, "DBHelper: add");
+        //check if the entry is already existed in SQLite
         ContentValues values = new ContentValues();
 
         values.put(COLUMN_NAME, item.name);
@@ -77,8 +78,9 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor cursor = db.rawQuery(QUERY, null);
 
         if (cursor != null) {
-            if (cursor.moveToFirst()) {
+            if (cursor.moveToLast()) {
                 Log.d(TAG, "DBHelper: load");
+                int count = 0;
                 do {
                     User user = new User();
 
@@ -91,10 +93,11 @@ public class DBHelper extends SQLiteOpenHelper {
                     }
 
                     arrayList.add(user);
-
-                }while(cursor.moveToNext());
+                    count++;
+                }while((cursor.moveToPrevious() && (count <= 20)));
             }
         }
+        db.close();
     }
 
     // convert from bitmap to byte array

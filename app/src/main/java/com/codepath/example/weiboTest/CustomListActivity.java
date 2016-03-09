@@ -46,6 +46,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     private httpTask task;
     private InnerHandler handler;
     private DBHelper dbHelper;
+    private CustomUsersAdapter adapter;
     private SwipeRefreshLayout mRefreshlayout;
     private boolean mAuthSuccessed;
     // weibo authlister
@@ -149,6 +150,13 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         //load from SQLite to arrayList
         dbHelper.load(users);
 
+        //set the adapter of list view
+        adapter = new CustomUsersAdapter(this, users);
+        // Attach the adapter to a ListView
+        ListView listView = (ListView) findViewById(R.id.lvUsers);
+        listView.setAdapter(adapter);
+        Log.d(TAG, "set adapter complete");
+
     }
     @Override
     protected void onResume()
@@ -156,7 +164,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         Log.d(TAG, "onResume");
         super.onResume();
 
-        populateUsersList();
+        //populateUsersList();
     }
     @Override
     protected void onPause() {
@@ -176,22 +184,9 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         }
     }
 
-    private void populateUsersList() {
-        // Construct the data source
-        //ArrayList<User> arrayOfUsers = User.getUsers();
-        // Create the adapter to convert the array to views
-        //CustomUsersAdapter adapter = new CustomUsersAdapter(this, arrayOfUsers);
-        Log.d(TAG, "new usersAdapter");
-        CustomUsersAdapter adapter = new CustomUsersAdapter(this, users);
-        // Attach the adapter to a ListView
-        ListView listView = (ListView) findViewById(R.id.lvUsers);
-        Log.d(TAG, "set adapter");
-        listView.setAdapter(adapter);
-        Log.d(TAG, "set adapter complete");
-    }
-
-    public class httpTask extends AsyncTask<Void, Void, Void> {
+    public class httpTask extends AsyncTask<Void, Void, ArrayList<User>> {
         //private ProgressDialog progressDialog;
+        ArrayList<User> tItems = new ArrayList<User>();
 
         @Override
         protected void onPreExecute() {
@@ -210,7 +205,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         }
 
         @Override
-        protected Void doInBackground(Void... arg0) {
+        protected ArrayList<User> doInBackground(Void... arg0) {
             try {
                 HttpClient hc = new DefaultHttpClient();
 
@@ -248,7 +243,8 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                             }
                         }
 
-                        //users.add(user);
+                        tItems.add(user);
+                        //adapter.add(user);
 
                         //save to the SQLite
                         dbHelper.add(user);
@@ -261,11 +257,11 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             } catch (Exception e) {
                 Log.e(TAG, "Error loading JSON", e);
             }
-            return null;
+            return tItems;
         }
 
         @Override
-        protected void onPostExecute(Void result) {
+        protected void onPostExecute(ArrayList<User> result) {
             //progressDialog.dismiss();
             Log.d(TAG, "Http task post execute");
             /*
@@ -273,8 +269,18 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                 users = User.getUsers();
             }
             */
-            //populateUsersList();
             mRefreshlayout.setRefreshing(false);
+            //populateUsersList();
+
+            users.clear();
+            //users.addAll(result);
+            dbHelper.load(users);
+
+            //adapter.clear();
+            //adapter.addAll(users);
+
+            adapter.notifyDataSetChanged();
+            //adapter.notifyDataSetInvalidated();
 
         }
 
