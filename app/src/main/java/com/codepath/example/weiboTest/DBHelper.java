@@ -25,6 +25,9 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String COLUMN_NAME = "_NAME";
     public static final String COLUMN_TEXT = "_TEXT";
     public static final String COLUMN_BMIDDLE_PIC = "_BMIDDLE_IMAGE";
+    public static final String COLUMN_PROFILE_PIC = "_PROFILE_IMAGE";
+
+    private SQLiteDatabase mSqlDB = null;
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -36,6 +39,7 @@ public class DBHelper extends SQLiteOpenHelper {
                 + COLUMN_ID + " INTEGER PRIMARY KEY,"
                 + COLUMN_NAME + " TEXT,"
                 + COLUMN_TEXT + " TEXT,"
+                + COLUMN_PROFILE_PIC + " BLOB,"
                 + COLUMN_BMIDDLE_PIC + " BLOB"+")";
 
         //You could define id as an auto increment column:
@@ -54,6 +58,18 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(sqLiteDatabase);
     }
 
+    public void  open() {
+        if (mSqlDB == null) {
+            mSqlDB = this.getWritableDatabase();
+        }
+    }
+
+    public void close() {
+        if (mSqlDB != null) {
+            mSqlDB.close();
+        }
+    }
+
     public void add(User item) {
         Log.d(TAG, "DBHelper: add");
         //check if the entry is already existed in SQLite
@@ -61,43 +77,59 @@ public class DBHelper extends SQLiteOpenHelper {
 
         values.put(COLUMN_NAME, item.name);
         values.put(COLUMN_TEXT, item.hometown);
+
+        if (item.profileImage != null) {
+            Log.d(TAG, "DBHelper: add the profile image");
+            values.put(COLUMN_PROFILE_PIC, getBytes(item.profileImage));
+        }
         if (item.bitmap != null) {
             Log.d(TAG, "DBHelper: add the image");
             values.put(COLUMN_BMIDDLE_PIC, getBytes(item.bitmap));
         }
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.insert(TABLE_WEIBO, null, values);
-        db.close();
+
+        //SQLiteDatabase db = this.getWritableDatabase();
+        if (mSqlDB != null) {
+            mSqlDB.insert(TABLE_WEIBO, null, values);
+        }
+        //db.close();
     }
 
     // load the rows from SQLite to the arrayList
     public void load(ArrayList<User> arrayList) {
-        String QUERY = "Select * FROM "+TABLE_WEIBO;
 
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(QUERY, null);
+        if (mSqlDB != null) {
+            String QUERY = "Select * FROM " + TABLE_WEIBO;
 
-        if (cursor != null) {
-            if (cursor.moveToLast()) {
-                Log.d(TAG, "DBHelper: load");
-                int count = 0;
-                do {
-                    User user = new User();
+            //SQLiteDatabase db = this.getWritableDatabase();
+            Cursor cursor = mSqlDB.rawQuery(QUERY, null);
 
-                    user.name = cursor.getString(cursor.getColumnIndex(COLUMN_NAME));
-                    user.hometown = cursor.getString(cursor.getColumnIndex(COLUMN_TEXT));
+            if (cursor != null) {
+                if (cursor.moveToLast()) {
+                    Log.d(TAG, "DBHelper: load");
+                    int count = 0;
+                    do {
+                        User user = new User();
 
-                    if (!cursor.isNull(cursor.getColumnIndex(COLUMN_BMIDDLE_PIC))) {
-                        Log.d(TAG, "DBHelper: load the image");
-                        user.bitmap = getImage(cursor.getBlob(cursor.getColumnIndex(COLUMN_BMIDDLE_PIC)));
-                    }
+                        user.name = cursor.getString(cursor.getColumnIndex(COLUMN_NAME));
+                        user.hometown = cursor.getString(cursor.getColumnIndex(COLUMN_TEXT));
 
-                    arrayList.add(user);
-                    count++;
-                }while((cursor.moveToPrevious() && (count <= 20)));
+                        if (!cursor.isNull(cursor.getColumnIndex(COLUMN_PROFILE_PIC))) {
+                            Log.d(TAG, "DBHelper: load the profile image");
+                            user.profileImage = getImage(cursor.getBlob(cursor.getColumnIndex(COLUMN_PROFILE_PIC)));
+                        }
+
+                        if (!cursor.isNull(cursor.getColumnIndex(COLUMN_BMIDDLE_PIC))) {
+                            Log.d(TAG, "DBHelper: load the image");
+                            user.bitmap = getImage(cursor.getBlob(cursor.getColumnIndex(COLUMN_BMIDDLE_PIC)));
+                        }
+
+                        arrayList.add(user);
+                        count++;
+                    } while ((cursor.moveToPrevious() && (count <= 20)));
+                }
             }
+            //db.close();
         }
-        db.close();
     }
 
     // convert from bitmap to byte array

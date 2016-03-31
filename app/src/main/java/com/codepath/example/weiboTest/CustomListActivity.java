@@ -10,6 +10,7 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,6 +19,11 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.widget.ListView;
 
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayout;
+import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayoutDirection;
 import com.sina.weibo.sdk.auth.AuthInfo;
 import com.sina.weibo.sdk.auth.Oauth2AccessToken;
 import com.sina.weibo.sdk.auth.WeiboAuthListener;
@@ -47,8 +53,16 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     private InnerHandler handler;
     private DBHelper dbHelper;
     private CustomUsersAdapter adapter;
-    private SwipeRefreshLayout mRefreshlayout;
+    //private SwipeRefreshLayout mRefreshlayout;
     private boolean mAuthSuccessed;
+
+    private SwipyRefreshLayout mswipyRefreshLayout;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
+
     // weibo authlister
     @Override
     public void onCancel() {
@@ -62,9 +76,9 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         //maccessToken = accessToken;
         //CustomListActivity.m_accessToken = accessToken;
 
-        if(m_accessToken.isSessionValid()) {
+        if (m_accessToken.isSessionValid()) {
             //accessToken.getToken();
-            Log.d(TAG, "Auth success, token"+m_accessToken);
+            Log.d(TAG, "Auth success, token" + m_accessToken);
 
             //get the public line
             //CustomListActivity.task.execute();
@@ -79,16 +93,56 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             //        //new httpTask().execute();
             //    }
             //});
-        }
-        else{
+        } else {
             Log.d(TAG, "Auth failure");
         }
     }
 
     @Override
     public void onWeiboException(WeiboException arg0) {
-        Log.d(TAG, "Auth Exception"+arg0.getMessage());
+        Log.d(TAG, "Auth Exception" + arg0.getMessage());
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "CustomList Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://com.codepath.example.weiboTest/http/host/path")
+        );
+        AppIndex.AppIndexApi.start(client, viewAction);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "CustomList Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://com.codepath.example.weiboTest/http/host/path")
+        );
+        AppIndex.AppIndexApi.end(client, viewAction);
+        client.disconnect();
+    }
+
     // inner handler
     static class InnerHandler extends Handler {
         WeakReference<CustomListActivity> mListActivity;
@@ -96,10 +150,11 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         InnerHandler(CustomListActivity aListActivity) {
             mListActivity = new WeakReference<CustomListActivity>(aListActivity);
         }
+
         @Override
         public void handleMessage(Message inputMsg) {
             CustomListActivity theActivity = mListActivity.get();
-            switch (inputMsg.what){
+            switch (inputMsg.what) {
                 case 1:
                     Log.d(TAG, "Notify  List activity the auth success");
                     //task.execute();
@@ -111,6 +166,7 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             }
         }
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -125,17 +181,25 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         //populateUsersList();
         //create the asnyc task
         //task = new httpTask();
-        mRefreshlayout = (SwipeRefreshLayout)findViewById(R.id.refresh_layout);
-        mRefreshlayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+
+        //SwipyRefreshLayoutDirection
+
+        mswipyRefreshLayout = (SwipyRefreshLayout) findViewById(R.id.swipyrefreshlayout);
+        mswipyRefreshLayout.setOnRefreshListener(new SwipyRefreshLayout.OnRefreshListener() {
             @Override
-            public void onRefresh() {
-                Log.d(TAG, "Begin refresh");
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        new httpTask().execute();
-                    }
-                });
+            public void onRefresh(SwipyRefreshLayoutDirection direction) {
+                if (direction == SwipyRefreshLayoutDirection.TOP) {
+                    Log.d(TAG, "Begin refresh top");
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            new httpTask().execute();
+                        }
+                    });
+                } else {
+                    Log.d(TAG, "Begin refresh bottom");
+                }
+
             }
         });
 
@@ -157,15 +221,19 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         listView.setAdapter(adapter);
         Log.d(TAG, "set adapter complete");
 
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
+
     @Override
-    protected void onResume()
-    {
+    protected void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
 
         //populateUsersList();
     }
+
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause");
@@ -178,13 +246,12 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         Log.d(TAG, "onActivityResult");
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (sso != null)
-        {
+        if (sso != null) {
             sso.authorizeCallBack(requestCode, resultCode, data);
         }
     }
 
-    public class httpTask extends AsyncTask<Void, Void, ArrayList<User>> {
+    private class httpTask extends AsyncTask<Void, Void, ArrayList<User>> {
         //private ProgressDialog progressDialog;
         ArrayList<User> tItems = new ArrayList<User>();
 
@@ -209,12 +276,12 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
             try {
                 HttpClient hc = new DefaultHttpClient();
 
-                HttpGet get = new HttpGet("https://api.weibo.com/2/statuses/public_timeline.json?access_token="+m_accessToken.getToken());
+                HttpGet get = new HttpGet("https://api.weibo.com/2/statuses/public_timeline.json?access_token=" + m_accessToken.getToken());
                 //HttpGet get = new HttpGet("http://search.twitter.com/search.json?q=android");
                 //HttpGet get = new HttpGet("https://api.douban.com/v2/loc/list");
                 Log.d(TAG, "Execute http get");
                 HttpResponse rp = hc.execute(get);
-                Log.d(TAG, "Execute http get complete code:"+rp.getStatusLine().getStatusCode());
+                Log.d(TAG, "Execute http get complete code:" + rp.getStatusLine().getStatusCode());
 
                 if (rp.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                     Log.d(TAG, "HttpStatus OK");
@@ -226,28 +293,35 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
 
                     for (int i = 0; i < sessions.length(); i++) {
                         JSONObject item = sessions.getJSONObject(i);
+                        JSONObject user_info = item.getJSONObject("user");
 
                         Log.d("ListExample: session", Integer.toString(i));
                         User user = new User();
-                        user.name = item.getString("id");
+                        //user.name = item.getString("id");
+                        user.name = user_info.getString("screen_name");
                         user.hometown = item.getString("text");
 
-                        if (item.has("bmiddle_pic"))
-                        {
+                        try {
+                            user.profileImage = BitmapFactory.decodeStream((InputStream) new URL(user_info.getString("profile_image_url")).getContent());
+                        } catch (Exception e) {
+                            Log.d(TAG, "Load the thumbnail_pic exception");
+                        }
+
+                        if (item.has("bmiddle_pic")) {
                             try {
                                 Log.d(TAG, "Load the bmiddle_pic");
-                                user.bitmap = BitmapFactory.decodeStream((InputStream)new URL(item.getString("bmiddle_pic")).getContent());
-                            }
-                            catch (Exception e){
+                                user.bitmap = BitmapFactory.decodeStream((InputStream) new URL(item.getString("bmiddle_pic")).getContent());
+                            } catch (Exception e) {
                                 Log.d(TAG, "Load the bmiddle_pic exception");
                             }
                         }
+
 
                         tItems.add(user);
                         //adapter.add(user);
 
                         //save to the SQLite
-                        dbHelper.add(user);
+                        //dbHelper.add(user);
                     }
 
                 } else {
@@ -269,12 +343,12 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                 users = User.getUsers();
             }
             */
-            mRefreshlayout.setRefreshing(false);
+            mswipyRefreshLayout.setRefreshing(false);
             //populateUsersList();
 
             users.clear();
-            //users.addAll(result);
-            dbHelper.load(users);
+            users.addAll(result);
+            //dbHelper.load(users);
 
             //adapter.clear();
             //adapter.addAll(users);
@@ -286,5 +360,20 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
 
     }
 
-	
+    private class sqlAsynTask extends AsyncTask<ArrayList<User>, Void, Void> {
+
+        @Override
+        protected Void doInBackground(ArrayList<User>... params) {
+
+            dbHelper.open();
+
+            for ( User item : params[0]) {
+                dbHelper.add(item);
+            }
+            dbHelper.close();
+            return null;
+        }
+    }
+
+
 }

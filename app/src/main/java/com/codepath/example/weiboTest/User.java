@@ -8,15 +8,18 @@ public class User {
 	public String name;
 	public String hometown;
 	public Bitmap bitmap;
+	public Bitmap profileImage;
 
 	public  User(){
 		this.bitmap = null;
+		this.profileImage = null;
 	}
 
 	public User(String name, String hometown) {
 		this.name = name;
 		this.hometown = hometown;
 		this.bitmap = null;
+		this.profileImage = null;
 	}
 
 	public static ArrayList<User> getUsers() {

@@ -3,6 +3,8 @@ package com.codepath.example.weiboTest;
 import java.util.ArrayList;
 
 import android.content.Context;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +35,8 @@ public class CustomUsersAdapter extends ArrayAdapter<User> {
         TextView tvName = (TextView) convertView.findViewById(R.id.tvName);
         TextView tvHome = (TextView) convertView.findViewById(R.id.tvHometown);
         ImageView thumbnail_pic = (ImageView) convertView.findViewById(R.id.tvImage);
+        ImageView profile_pic = (ImageView) convertView.findViewById(R.id.ivUserIcon);
+
         // Populate the data into the template view using the data object
         tvName.setText(user.name);
         tvHome.setText(user.hometown);
@@ -43,6 +47,19 @@ public class CustomUsersAdapter extends ArrayAdapter<User> {
         }
         else {
             thumbnail_pic.setVisibility(View.GONE);
+        }
+
+        if (user.profileImage != null) {
+            Log.d(TAG, "CustomUsersAdapter: set the profile bitmap");
+            //profile_pic.setImageBitmap(user.profileImage);
+            //profile_pic.setImageDrawable();
+
+            //set the image to circle
+            RoundedBitmapDrawable rd = RoundedBitmapDrawableFactory.create(getContext().getResources(), user.profileImage);
+            rd.setCornerRadius(Math.min(rd.getMinimumWidth(),rd.getMinimumHeight())/2.0f);
+            rd.setAntiAlias(true);
+            rd.setAlpha(200);
+            profile_pic.setImageDrawable(rd);
         }
         // Return the completed view to render on screen
         return convertView;
