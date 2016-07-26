@@ -16,13 +16,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
+
 }
 
 dependencies {
     compile 'com.android.support:support-v4:21.0.3'
 
     compile 'com.github.orangegangsters:swipy:1.2.2@aar'
+    compile 'com.google.code.gson:gson:2.2.4'
 
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.google.android.gms:play-services-appindexing:8.1.0'
+    compile 'com.koushikdutta.ion:ion:2.+'
 }

@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -17,11 +18,22 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
+
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Ion;
 import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayout;
 import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayoutDirection;
 import com.sina.weibo.sdk.auth.AuthInfo;
@@ -57,6 +69,8 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
     private boolean mAuthSuccessed;
 
     private SwipyRefreshLayout mswipyRefreshLayout;
+    private Future<JsonObject> loading;
+    private ArrayAdapter<JsonObject> weiboAdapter;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -182,6 +196,42 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         //create the asnyc task
         //task = new httpTask();
 
+        //create the atapter with JsonObject
+        weiboAdapter = new ArrayAdapter<JsonObject>(this, 0){
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                //return super.getView(position, convertView, parent);
+
+                if (convertView == null){
+                    convertView = getLayoutInflater().inflate(R.layout.item_user, parent, false);
+                }
+                // Lookup view for data population
+                TextView tvName = (TextView) convertView.findViewById(R.id.tvName);
+                TextView tvHome = (TextView) convertView.findViewById(R.id.tvHometown);
+                ImageView thumbnail_pic = (ImageView) convertView.findViewById(R.id.tvImage);
+                ImageView profile_pic = (ImageView) convertView.findViewById(R.id.ivUserIcon);
+
+                JsonObject weiboItem = getItem(position);
+                JsonObject user = weiboItem.getAsJsonObject("user");
+                String name = user.get("screen_name").getAsString();
+                String text = weiboItem.get("text").getAsString();
+                String userIconImageUrl = user.get("profile_image_url").getAsString();
+
+                Ion.with(profile_pic).load(userIconImageUrl);
+
+                tvName.setText(name);
+                tvHome.setText(text);
+
+                if (weiboItem.has("bmiddle_pic")) {
+                    String mPicUrl = weiboItem.get("bmiddle_pic").getAsString();
+                    Ion.with(thumbnail_pic).load(mPicUrl);
+                }
+
+
+                return convertView;
+            }
+        };
+
         //SwipyRefreshLayoutDirection
 
         mswipyRefreshLayout = (SwipyRefreshLayout) findViewById(R.id.swipyrefreshlayout);
@@ -193,7 +243,8 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            new httpTask().execute();
+                            //new httpTask().execute();
+                            ionLoad();
                         }
                     });
                 } else {
@@ -215,10 +266,11 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         dbHelper.load(users);
 
         //set the adapter of list view
-        adapter = new CustomUsersAdapter(this, users);
+        //adapter = new CustomUsersAdapter(this, users);
         // Attach the adapter to a ListView
         ListView listView = (ListView) findViewById(R.id.lvUsers);
-        listView.setAdapter(adapter);
+        //listView.setAdapter(adapter);
+        listView.setAdapter(weiboAdapter);
         Log.d(TAG, "set adapter complete");
 
         // ATTENTION: This was auto-generated to implement the App Indexing API.
@@ -275,6 +327,9 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         protected ArrayList<User> doInBackground(Void... arg0) {
             try {
                 HttpClient hc = new DefaultHttpClient();
+
+                //JsonObject m;
+
 
                 HttpGet get = new HttpGet("https://api.weibo.com/2/statuses/public_timeline.json?access_token=" + m_accessToken.getToken());
                 //HttpGet get = new HttpGet("http://search.twitter.com/search.json?q=android");
@@ -375,5 +430,45 @@ public class CustomListActivity extends Activity implements WeiboAuthListener {
         }
     }
 
+    private void ionLoad() {
+        //don't attempt to load more if a loading is already in progress
+        if (mAuthSuccessed == true) {
 
+            if ((loading != null) && !loading.isDone() && !loading.isCancelled())
+                return;
+
+            //request the loads a URL as JsonArray
+            Log.d(TAG, "Loading with Ion");
+            String url = "https://api.weibo.com/2/statuses/public_timeline.json?access_token=" + m_accessToken.getToken();
+            //Log.d(TAG,Ion.with(this).load(url).asJsonObject().toString());
+
+            loading = Ion.with(this).load(url).setLogging(TAG, Log.DEBUG).asJsonObject().setCallback(new FutureCallback<JsonObject>() {
+                @Override
+                public void onCompleted(Exception e, JsonObject result) {
+                    //Log.d(TAG, result.toString());
+
+                    if (e != null) {
+                        Log.d(TAG, "Ion loading Error");
+                        return;
+                    }
+
+                    if (result != null) {
+                        Log.d(TAG, "result:"+result.toString());
+                        //weiboAdapter.clear();
+
+                        JsonArray resultArray = result.get("statuses").getAsJsonArray();
+
+                        for (int i = 0; i < resultArray.size(); i++) {
+                            weiboAdapter.insert(resultArray.get(i).getAsJsonObject(), 0);
+                        }
+
+                        mswipyRefreshLayout.setRefreshing(false);
+                        weiboAdapter.notifyDataSetChanged();
+                    }
+
+                }
+            });
+
+        }
+    }
 }
